@@ -268,9 +268,7 @@ struct VideoPlayerView: View {
         VideoPlayer(player: AVPlayer(url: url))
             .onAppear {
                 // Auto-play the video
-                if let player = AVPlayer(url: url) {
-                    player.play()
-                }
+                AVPlayer(url: url).play()
             }
     }
 }

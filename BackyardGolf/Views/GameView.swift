@@ -218,49 +218,6 @@ struct SmartHoleStatusView: View {
 
 // MARK: - Game Mode Button
 
-struct GameModeButton: View {
-    let mode: GameSession.GameMode
-    let action: () -> Void
-    
-    var body: some View {
-        Button(action: action) {
-            HStack {
-                VStack(alignment: .leading) {
-                    Text(mode.rawValue)
-                        .font(.headline)
-                        .foregroundColor(.primary)
-                    
-                    Text(modeDescription)
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                }
-                
-                Spacer()
-                
-                Image(systemName: "chevron.right")
-                    .foregroundColor(.secondary)
-            }
-            .padding()
-            .background(Color.gray.opacity(0.1))
-            .cornerRadius(10)
-        }
-    }
-    
-    private var modeDescription: String {
-        switch mode {
-        case .practice:
-            return "Practice your chipping skills"
-        case .quickMatch:
-            return "Quick 5-minute games"
-        case .tournament:
-            return "Competitive tournaments"
-        case .challenge:
-            return "Challenge friends"
-        case .party:
-            return "Fun party games"
-        }
-    }
-}
 
 // MARK: - Recent Shots View
 

@@ -63,6 +63,18 @@ struct GameSession {
         case tournament = "Tournament"
         case challenge = "Challenge"
         case party = "Party Mode"
+        case trickShot = "Trick Shot"
+        
+        var icon: String {
+            switch self {
+            case .practice: return "figure.golf"
+            case .quickMatch: return "bolt"
+            case .tournament: return "trophy"
+            case .challenge: return "target"
+            case .party: return "person.2"
+            case .trickShot: return "video"
+            }
+        }
     }
 }
 
@@ -76,16 +88,36 @@ struct Player {
     var accuracy: Double = 0.0
     var isOnline: Bool = true
     var rank: Int = 0
+    var stats: PlayerStats = PlayerStats()
 }
 
-struct Shot {
+struct Target {
+    let id: String
+    let name: String
+    let points: Int
+    let position: CGPoint
+    let radius: Double
+}
+
+struct PlayerStats {
+    var totalShots: Int = 0
+    var totalPoints: Int = 0
+    var gamesPlayed: Int = 0
+    var averageAccuracy: Double = 0
+    var bestScore: Int = 0
+    var longestShot: Double = 0
+}
+
+struct Shot: Identifiable {
     let id: String
     let playerId: String
+    let targetId: String
     let timestamp: Date
     let isSuccessful: Bool
     let distance: Double?
     let power: Double?
     let angle: Double?
+    let points: Int
 }
 
 struct Competition {
@@ -169,6 +201,7 @@ class GameManager: ObservableObject {
     @Published var leaderboard: [LeaderboardEntry] = []
     @Published var activeCompetitions: [Competition] = []
     @Published var friends: [UserProfile] = []
+    @Published var isGameActive: Bool = false
     
     // Video and Social Features
     @Published var videoRecorder = VideoRecorder()
@@ -289,23 +322,29 @@ class GameManager: ObservableObject {
             startTime: Date()
         )
         currentSession = session
+        isGameActive = true
+        print("🎮 Started \(mode.rawValue) game with \(players.count) players")
     }
     
     func endGame() {
         currentSession?.isActive = false
         currentSession?.endTime = Date()
         currentSession = nil
+        isGameActive = false
+        print("🏁 Game ended")
     }
     
     func recordShot(playerId: String, isSuccessful: Bool, distance: Double? = nil, power: Double? = nil, angle: Double? = nil) {
         let shot = Shot(
             id: UUID().uuidString,
             playerId: playerId,
+            targetId: "default",
             timestamp: Date(),
             isSuccessful: isSuccessful,
             distance: distance,
             power: power,
-            angle: angle
+            angle: angle,
+            points: isSuccessful ? 10 : 0
         )
         
         recentShots.insert(shot, at: 0)
@@ -395,5 +434,37 @@ class GameManager: ObservableObject {
         
         socialManager.shareVideo(url: videoURL, message: message, from: nil)
         showingVideoShare = false
+    }
+    
+    // MARK: - Enhanced Game Management Methods
+    
+    func recordShot(for player: Player, target: Target, distance: Double) {
+        let shot = Shot(
+            id: UUID().uuidString,
+            playerId: player.id,
+            targetId: target.id,
+            timestamp: Date(),
+            isSuccessful: true,
+            distance: distance,
+            power: nil,
+            angle: nil,
+            points: target.points
+        )
+        
+        recentShots.insert(shot, at: 0)
+        if recentShots.count > 10 {
+            recentShots.removeLast()
+        }
+        
+        // Update player stats
+        if let index = currentSession?.players.firstIndex(where: { $0.id == player.id }) {
+            currentSession?.players[index].stats.totalShots += 1
+            currentSession?.players[index].stats.totalPoints += shot.points
+            if distance > currentSession?.players[index].stats.longestShot ?? 0 {
+                currentSession?.players[index].stats.longestShot = distance
+            }
+        }
+        
+        print("🏌️ Shot recorded: \(player.username) scored \(shot.points) points")
     }
 }
