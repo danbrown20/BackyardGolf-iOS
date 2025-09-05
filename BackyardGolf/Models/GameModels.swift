@@ -162,6 +162,16 @@ struct UserProfile: Identifiable {
     var achievements: [Achievement] = []
     var isOnline: Bool = false
     var lastActive: Date = Date()
+    
+    // Achievement tracking properties
+    var longestShot: Double? = nil
+    var bestScore: Int = 0
+    var tournamentWins: Int = 0
+    var trickShotsCompleted: Int = 0
+    var challengesCompleted: Int = 0
+    var friendsCount: Int = 0
+    var challengesCreated: Int = 0
+    var videosShared: Int = 0
 }
 
 struct Achievement {
@@ -169,15 +179,81 @@ struct Achievement {
     let name: String
     let description: String
     let icon: String
-    let isUnlocked: Bool
-    let unlockedDate: Date?
+    var isUnlocked: Bool
+    var unlockedDate: Date?
     let rarity: AchievementRarity
+    let category: AchievementCategory
+    let requirements: AchievementRequirement
+    var progress: Int = 0
     
     enum AchievementRarity: String, CaseIterable {
         case common = "Common"
         case rare = "Rare"
         case epic = "Epic"
         case legendary = "Legendary"
+        
+        var color: Color {
+            switch self {
+            case .common: return .gray
+            case .rare: return .blue
+            case .epic: return .purple
+            case .legendary: return .orange
+            }
+        }
+        
+        var glowColor: Color {
+            switch self {
+            case .common: return .clear
+            case .rare: return .blue.opacity(0.3)
+            case .epic: return .purple.opacity(0.4)
+            case .legendary: return .orange.opacity(0.5)
+            }
+        }
+    }
+    
+    enum AchievementCategory: String, CaseIterable {
+        case beginner = "Beginner"
+        case accuracy = "Accuracy"
+        case streak = "Streak"
+        case distance = "Distance"
+        case gameMode = "Game Mode"
+        case social = "Social"
+        case milestone = "Milestone"
+        case dedication = "Dedication"
+        
+        var icon: String {
+            switch self {
+            case .beginner: return "star.fill"
+            case .accuracy: return "scope"
+            case .streak: return "flame.fill"
+            case .distance: return "arrow.up.right"
+            case .gameMode: return "gamecontroller.fill"
+            case .social: return "person.2.fill"
+            case .milestone: return "trophy.fill"
+            case .dedication: return "heart.fill"
+            }
+        }
+    }
+}
+
+struct AchievementRequirement {
+    let type: RequirementType
+    let target: Int
+    
+    enum RequirementType {
+        case totalShots
+        case successfulShots
+        case currentStreak
+        case longestShot
+        case singleGameAccuracy
+        case singleGameScore
+        case gamesPlayed
+        case tournamentWins
+        case trickShotsCompleted
+        case challengesCompleted
+        case friendsCount
+        case challengesCreated
+        case videosShared
     }
 }
 
@@ -209,6 +285,9 @@ class GameManager: ObservableObject {
     @Published var showingVideoShare = false
     @Published var lastTrickShotVideo: URL?
     
+    // Achievement System
+    @Published var achievementManager = AchievementManager()
+    
     enum ConnectionStatus {
         case disconnected
         case scanning
@@ -227,6 +306,9 @@ class GameManager: ObservableObject {
         )
         
         setupMockData()
+        
+        // Initialize achievement manager with current user
+        achievementManager.updateUserProfile(currentUser)
     }
     
     private func setupMockData() {
@@ -327,6 +409,26 @@ class GameManager: ObservableObject {
     }
     
     func endGame() {
+        // Calculate final score and accuracy for achievement tracking
+        if let session = currentSession {
+            let totalScore = session.players.reduce(0) { $0 + $1.score }
+            let accuracy = session.players.isEmpty ? 0.0 : Double(session.players.reduce(0) { $0 + $1.successfulShots }) / Double(session.players.reduce(0) { $0 + $1.totalShots })
+            
+            // Update user stats
+            currentUser.totalGamesPlayed += 1
+            currentUser.experience += totalScore / 10
+            if totalScore > currentUser.bestScore {
+                currentUser.bestScore = totalScore
+            }
+            
+            // Record game completion for achievements
+            achievementManager.recordGameCompleted(
+                score: totalScore,
+                accuracy: accuracy * 100,
+                gameMode: session.gameMode
+            )
+        }
+        
         currentSession?.isActive = false
         currentSession?.endTime = Date()
         currentSession = nil
@@ -363,6 +465,31 @@ class GameManager: ObservableObject {
             let player = currentSession?.players[playerIndex]
             currentSession?.players[playerIndex].accuracy = Double(player?.successfulShots ?? 0) / Double(player?.totalShots ?? 1)
         }
+        
+        // Update current user stats and achievement progress
+        currentUser.totalShots += 1
+        if isSuccessful {
+            currentUser.successfulShots += 1
+            currentUser.currentStreak += 1
+            if let distance = distance, distance > (currentUser.longestShot ?? 0) {
+                currentUser.longestShot = distance
+            }
+        } else {
+            currentUser.currentStreak = 0
+        }
+        
+        if currentUser.currentStreak > currentUser.longestStreak {
+            currentUser.longestStreak = currentUser.currentStreak
+        }
+        
+        currentUser.bestAccuracy = max(currentUser.bestAccuracy, Double(currentUser.successfulShots) / Double(currentUser.totalShots))
+        
+        // Update achievement manager
+        achievementManager.recordShot(
+            isSuccessful: isSuccessful,
+            distance: distance,
+            gameMode: currentSession?.gameMode
+        )
     }
     
     // MARK: - Social Features

@@ -62,6 +62,22 @@ struct GameView: View {
                 .tag(5)
         }
         .accentColor(.green)
+        .overlay(
+            // Achievement notification overlay
+            Group {
+                if gameManager.achievementManager.showingAchievementNotification,
+                   let achievement = gameManager.achievementManager.currentNotificationAchievement {
+                    VStack {
+                        AchievementNotificationView(achievement: achievement)
+                            .transition(.move(edge: .top).combined(with: .opacity))
+                            .animation(.spring(response: 0.6, dampingFraction: 0.8), value: gameManager.achievementManager.showingAchievementNotification)
+                        
+                        Spacer()
+                    }
+                    .padding(.top, 50)
+                }
+            }
+        )
     }
 }
 

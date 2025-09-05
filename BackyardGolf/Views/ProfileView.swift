@@ -24,7 +24,7 @@ struct ProfileView: View {
                     
                     // Achievements Preview
                     AchievementsPreviewView(
-                        achievements: gameManager.currentUser.achievements,
+                        achievementManager: gameManager.achievementManager,
                         showingAchievements: $showingAchievements
                     )
                     
@@ -48,7 +48,7 @@ struct ProfileView: View {
                 EditProfileView(user: gameManager.currentUser)
             }
             .sheet(isPresented: $showingAchievements) {
-                AchievementsView(achievements: gameManager.currentUser.achievements)
+                EnhancedAchievementsView(achievementManager: gameManager.achievementManager)
             }
         }
     }
@@ -208,7 +208,7 @@ struct StatCard: View {
 // MARK: - Achievements Preview
 
 struct AchievementsPreviewView: View {
-    let achievements: [Achievement]
+    @ObservedObject var achievementManager: AchievementManager
     @Binding var showingAchievements: Bool
     
     var body: some View {
@@ -219,6 +219,11 @@ struct AchievementsPreviewView: View {
                 
                 Spacer()
                 
+                // Progress indicator
+                Text("\(achievementManager.getTotalUnlockedCount())/\(achievementManager.getTotalAchievementCount())")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                
                 Button("View All") {
                     showingAchievements = true
                 }
@@ -228,8 +233,15 @@ struct AchievementsPreviewView: View {
             
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 12) {
-                    ForEach(achievements.prefix(5), id: \.id) { achievement in
+                    ForEach(achievementManager.unlockedAchievements.prefix(5), id: \.id) { achievement in
                         AchievementBadgeView(achievement: achievement)
+                    }
+                    
+                    // Show progress for next achievement if no unlocked ones
+                    if achievementManager.unlockedAchievements.isEmpty {
+                        ForEach(achievementManager.allAchievements.prefix(3), id: \.id) { achievement in
+                            AchievementBadgeView(achievement: achievement)
+                        }
                     }
                 }
                 .padding(.horizontal)
