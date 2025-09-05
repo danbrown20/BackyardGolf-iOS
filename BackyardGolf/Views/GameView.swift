@@ -72,6 +72,11 @@ struct MainGameView: View {
                 // Smart Hole Status
                 SmartHoleStatusView(smartHole: gameManager.smartHole)
                 
+                // Video Recording Status (for Trick Shot mode)
+                if gameManager.currentSession?.gameMode == .trickShot {
+                    VideoRecordingStatusView(gameManager: gameManager)
+                }
+                
                 Spacer()
                 
                 // Game Mode Selection
@@ -96,6 +101,18 @@ struct MainGameView: View {
             }
             .padding()
             .navigationTitle("Backyard Golf")
+            .sheet(isPresented: $gameManager.showingVideoShare) {
+                if let videoURL = gameManager.lastTrickShotVideo {
+                    VideoShareView(
+                        videoURL: videoURL,
+                        message: gameManager.socialManager.generateTrickShotMessage(
+                            playerName: gameManager.currentUser.username,
+                            points: 0
+                        ),
+                        socialManager: gameManager.socialManager
+                    )
+                }
+            }
         }
     }
     
@@ -289,6 +306,73 @@ struct ShotIndicatorView: View {
         let formatter = RelativeDateTimeFormatter()
         formatter.unitsStyle = .abbreviated
         return formatter.localizedString(for: shot.timestamp, relativeTo: Date())
+    }
+}
+
+// MARK: - Video Recording Status View
+
+struct VideoRecordingStatusView: View {
+    @ObservedObject var gameManager: GameManager
+    
+    var body: some View {
+        VStack(spacing: 12) {
+            HStack {
+                Image(systemName: gameManager.videoRecorder.isRecording ? "video.fill" : "video.slash")
+                    .foregroundColor(gameManager.videoRecorder.isRecording ? .red : .gray)
+                
+                Text(gameManager.videoRecorder.isRecording ? "Recording Trick Shot..." : "Ready to Record")
+                    .font(.headline)
+                    .foregroundColor(gameManager.videoRecorder.isRecording ? .red : .primary)
+                
+                Spacer()
+            }
+            
+            if gameManager.videoRecorder.isRecording {
+                HStack {
+                    Circle()
+                        .fill(Color.red)
+                        .frame(width: 8, height: 8)
+                        .opacity(0.8)
+                        .animation(.easeInOut(duration: 1).repeatForever(autoreverses: true), value: gameManager.videoRecorder.isRecording)
+                    
+                    Text("Tap to stop recording when shot is complete")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                    
+                    Spacer()
+                }
+            }
+            
+            // Recording Controls
+            HStack(spacing: 15) {
+                if !gameManager.videoRecorder.isRecording {
+                    Button("Start Recording") {
+                        gameManager.startTrickShotRecording()
+                    }
+                    .font(.caption)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 8)
+                    .background(Color.red)
+                    .foregroundColor(.white)
+                    .cornerRadius(8)
+                } else {
+                    Button("Stop Recording") {
+                        gameManager.stopTrickShotRecording()
+                    }
+                    .font(.caption)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 8)
+                    .background(Color.gray)
+                    .foregroundColor(.white)
+                    .cornerRadius(8)
+                }
+                
+                Spacer()
+            }
+        }
+        .padding()
+        .background(Color.gray.opacity(0.1))
+        .cornerRadius(10)
     }
 }
 

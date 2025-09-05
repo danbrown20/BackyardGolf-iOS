@@ -170,6 +170,12 @@ class GameManager: ObservableObject {
     @Published var activeCompetitions: [Competition] = []
     @Published var friends: [UserProfile] = []
     
+    // Video and Social Features
+    @Published var videoRecorder = VideoRecorder()
+    @Published var socialManager = SocialMediaManager()
+    @Published var showingVideoShare = false
+    @Published var lastTrickShotVideo: URL?
+    
     enum ConnectionStatus {
         case disconnected
         case scanning
@@ -343,5 +349,51 @@ class GameManager: ObservableObject {
             currentUser.friends.append(user.id)
             friends.append(user)
         }
+    }
+    
+    // MARK: - Video Recording Features
+    
+    func startTrickShotRecording() {
+        guard currentSession?.gameMode == .trickShot else { return }
+        videoRecorder.startRecording()
+        print("🎬 Started recording for trick shot mode")
+    }
+    
+    func stopTrickShotRecording() {
+        videoRecorder.stopRecording()
+        print("⏹️ Stopped recording for trick shot")
+    }
+    
+    func handleTrickShotSuccess(player: Player, points: Int) {
+        // Stop recording and prepare for sharing
+        stopTrickShotRecording()
+        
+        // Wait a moment for video to be processed
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+            if let videoURL = self.videoRecorder.lastVideoURL {
+                self.lastTrickShotVideo = videoURL
+                self.showingVideoShare = true
+                
+                // Generate share message
+                let message = self.socialManager.generateTrickShotMessage(
+                    playerName: player.username,
+                    points: points
+                )
+                
+                print("🎯 Trick shot success! Video ready for sharing: \(message)")
+            }
+        }
+    }
+    
+    func shareTrickShot() {
+        guard let videoURL = lastTrickShotVideo else { return }
+        
+        let message = socialManager.generateTrickShotMessage(
+            playerName: currentUser.username,
+            points: 0 // You can pass actual points here
+        )
+        
+        socialManager.shareVideo(url: videoURL, message: message, from: nil)
+        showingVideoShare = false
     }
 }
