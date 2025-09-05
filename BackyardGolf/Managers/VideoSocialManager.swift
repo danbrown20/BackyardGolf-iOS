@@ -21,7 +21,8 @@ class VideoRecorder: NSObject, ObservableObject {
     
     override init() {
         super.init()
-        requestPermissions()
+        // Don't request permissions immediately to avoid crash
+        // requestPermissions()
     }
     
     // MARK: - Permissions
@@ -46,6 +47,10 @@ class VideoRecorder: NSObject, ObservableObject {
     func startRecording() {
         guard !isRecording else { return }
         print("🎬 Starting video recording...")
+        
+        // Request permissions first
+        requestPermissions()
+        
         setupCaptureSession { [weak self] success in
             if success {
                 self?.beginRecording()
@@ -263,13 +268,25 @@ struct VideoShareView: View {
 // MARK: - Video Player View
 struct VideoPlayerView: View {
     let url: URL
+    @State private var player: AVPlayer?
     
     var body: some View {
-        VideoPlayer(player: AVPlayer(url: url))
-            .onAppear {
-                // Auto-play the video
-                AVPlayer(url: url).play()
+        Group {
+            if let player = player {
+                VideoPlayer(player: player)
+            } else {
+                Text("Loading video...")
+                    .foregroundColor(.secondary)
             }
+        }
+        .onAppear {
+            player = AVPlayer(url: url)
+            player?.play()
+        }
+        .onDisappear {
+            player?.pause()
+            player = nil
+        }
     }
 }
 

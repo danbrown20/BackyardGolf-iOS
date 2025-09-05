@@ -509,29 +509,6 @@ struct ContentView: View {
 
 // MARK: - Supporting Views
 
-struct GameModeButton: View {
-    let mode: GameSession.GameMode
-    let action: () -> Void
-    
-    var body: some View {
-        Button(action: action) {
-            VStack(spacing: 5) {
-                Image(systemName: mode.icon)
-                    .font(.title2)
-                    .foregroundColor(.blue)
-                
-                Text(mode.rawValue)
-                    .font(.caption)
-                    .fontWeight(.medium)
-                    .multilineTextAlignment(.center)
-            }
-            .frame(height: 60)
-            .frame(maxWidth: .infinity)
-            .background(Color.gray.opacity(0.1))
-            .cornerRadius(8)
-        }
-    }
-}
 
 struct QuickActionButtonStyle: ButtonStyle {
     let color: Color

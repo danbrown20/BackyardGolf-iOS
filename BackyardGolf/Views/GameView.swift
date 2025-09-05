@@ -45,13 +45,21 @@ struct GameView: View {
                 }
                 .tag(3)
             
+            // Social Tab
+            SocialView()
+                .tabItem {
+                    Image(systemName: "person.2")
+                    Text("Social")
+                }
+                .tag(4)
+            
             // Profile Tab
             ProfileView(gameManager: gameManager)
                 .tabItem {
                     Image(systemName: "person.circle")
                     Text("Profile")
                 }
-                .tag(4)
+                .tag(5)
         }
         .accentColor(.green)
     }
@@ -218,6 +226,29 @@ struct SmartHoleStatusView: View {
 
 // MARK: - Game Mode Button
 
+struct GameModeButton: View {
+    let mode: GameSession.GameMode
+    let action: () -> Void
+    
+    var body: some View {
+        Button(action: action) {
+            VStack(spacing: 8) {
+                Image(systemName: mode.icon)
+                    .font(.title2)
+                    .foregroundColor(.blue)
+                
+                Text(mode.rawValue)
+                    .font(.caption)
+                    .fontWeight(.medium)
+                    .multilineTextAlignment(.center)
+            }
+            .frame(height: 80)
+            .frame(maxWidth: .infinity)
+            .background(Color.gray.opacity(0.1))
+            .cornerRadius(12)
+        }
+    }
+}
 
 // MARK: - Recent Shots View
 
