@@ -37,13 +37,21 @@ struct GameView: View {
                 }
                 .tag(2)
             
+            // Prizes Tab
+            PrizeGalleryView(prizeManager: gameManager.prizeManager)
+                .tabItem {
+                    Image(systemName: "gift.fill")
+                    Text("Prizes")
+                }
+                .tag(3)
+            
             // Leaderboard Tab
             LeaderboardView(gameManager: gameManager)
                 .tabItem {
                     Image(systemName: "list.number")
                     Text("Leaderboard")
                 }
-                .tag(3)
+                .tag(4)
             
             // Social Tab
             SocialView()
@@ -51,7 +59,7 @@ struct GameView: View {
                     Image(systemName: "person.2")
                     Text("Social")
                 }
-                .tag(4)
+                .tag(5)
             
             // Profile Tab
             ProfileView(gameManager: gameManager)
@@ -59,7 +67,7 @@ struct GameView: View {
                     Image(systemName: "person.circle")
                     Text("Profile")
                 }
-                .tag(5)
+                .tag(6)
         }
         .accentColor(.green)
         .overlay(

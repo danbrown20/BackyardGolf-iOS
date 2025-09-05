@@ -11,6 +11,7 @@ struct ProfileView: View {
     @ObservedObject var gameManager: GameManager
     @State private var showingEditProfile = false
     @State private var showingAchievements = false
+    @State private var showingPrizes = false
     
     var body: some View {
         NavigationView {
@@ -26,6 +27,12 @@ struct ProfileView: View {
                     AchievementsPreviewView(
                         achievementManager: gameManager.achievementManager,
                         showingAchievements: $showingAchievements
+                    )
+                    
+                    // Prizes Preview
+                    PrizesPreviewView(
+                        prizeManager: gameManager.prizeManager,
+                        showingPrizes: $showingPrizes
                     )
                     
                     // Friends Section
@@ -49,6 +56,9 @@ struct ProfileView: View {
             }
             .sheet(isPresented: $showingAchievements) {
                 EnhancedAchievementsView(achievementManager: gameManager.achievementManager)
+            }
+            .sheet(isPresented: $showingPrizes) {
+                UserPrizesView(prizeManager: gameManager.prizeManager)
             }
         }
     }
@@ -558,6 +568,112 @@ struct AchievementDetailView: View {
         let formatter = DateFormatter()
         formatter.dateStyle = .short
         return formatter.string(from: date)
+    }
+}
+
+// MARK: - Prizes Preview View
+
+struct PrizesPreviewView: View {
+    @ObservedObject var prizeManager: PrizeManager
+    @Binding var showingPrizes: Bool
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 15) {
+            HStack {
+                Text("Prizes")
+                    .font(.headline)
+                
+                Spacer()
+                
+                // Prize count indicator
+                Text("\(prizeManager.getUnclaimedPrizeCount()) unclaimed")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                
+                Button("View All") {
+                    showingPrizes = true
+                }
+                .font(.caption)
+                .foregroundColor(.blue)
+            }
+            
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 12) {
+                    ForEach(prizeManager.userPrizes.prefix(5), id: \.id) { userPrize in
+                        if let prize = prizeManager.availablePrizes.first(where: { $0.id == userPrize.prizeId }) {
+                            PrizePreviewCard(prize: prize, userPrize: userPrize)
+                        }
+                    }
+                    
+                    // Show available prizes if no earned ones
+                    if prizeManager.userPrizes.isEmpty {
+                        ForEach(prizeManager.availablePrizes.prefix(3), id: \.id) { prize in
+                            PrizePreviewCard(prize: prize, userPrize: nil)
+                        }
+                    }
+                }
+                .padding(.horizontal)
+            }
+        }
+    }
+}
+
+struct PrizePreviewCard: View {
+    let prize: Prize
+    let userPrize: UserPrize?
+    
+    var body: some View {
+        VStack(spacing: 8) {
+            ZStack {
+                Circle()
+                    .fill(prize.tier.glowColor)
+                    .frame(width: 40, height: 40)
+                    .blur(radius: 4)
+                
+                Circle()
+                    .fill(prize.type.color.opacity(0.2))
+                    .frame(width: 35, height: 35)
+                
+                Image(systemName: prize.imageURL)
+                    .font(.title3)
+                    .foregroundColor(prize.type.color)
+            }
+            
+            Text(prize.name)
+                .font(.caption2)
+                .fontWeight(.medium)
+                .lineLimit(2)
+                .multilineTextAlignment(.center)
+            
+            if let userPrize = userPrize {
+                Text(userPrize.status.rawValue)
+                    .font(.caption2)
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 2)
+                    .background(statusColor.opacity(0.2))
+                    .foregroundColor(statusColor)
+                    .cornerRadius(4)
+            } else {
+                Text("Available")
+                    .font(.caption2)
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 2)
+                    .background(Color.gray.opacity(0.2))
+                    .foregroundColor(.gray)
+                    .cornerRadius(4)
+            }
+        }
+        .frame(width: 80)
+    }
+    
+    private var statusColor: Color {
+        guard let userPrize = userPrize else { return .gray }
+        
+        switch userPrize.status {
+        case .unclaimed: return .orange
+        case .claimed: return .green
+        case .expired: return .red
+        }
     }
 }
 

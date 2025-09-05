@@ -19,7 +19,7 @@ struct CompetitionsView: View {
                     ActiveCompetitionsSection(gameManager: gameManager)
                     
                     // Prize Pool
-                    PrizePoolSection()
+                    PrizePoolSection(prizeManager: gameManager.prizeManager)
                     
                     // Create Competition Button
                     CreateCompetitionButton(showingCreateCompetition: $showingCreateCompetition)
@@ -44,11 +44,11 @@ struct ActiveCompetitionsSection: View {
             Text("Active Competitions")
                 .font(.headline)
             
-            if gameManager.activeCompetitions.isEmpty {
+            if gameManager.prizeManager.activeTournaments.isEmpty {
                 EmptyCompetitionsView()
             } else {
-                ForEach(gameManager.activeCompetitions, id: \.id) { competition in
-                    CompetitionCard(competition: competition, gameManager: gameManager)
+                ForEach(gameManager.prizeManager.activeTournaments, id: \.id) { tournament in
+                    TournamentCard(tournament: tournament, gameManager: gameManager)
                 }
             }
         }
@@ -77,19 +77,19 @@ struct EmptyCompetitionsView: View {
     }
 }
 
-struct CompetitionCard: View {
-    let competition: Competition
+struct TournamentCard: View {
+    let tournament: Tournament
     @ObservedObject var gameManager: GameManager
     
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(competition.name)
+                    Text(tournament.name)
                         .font(.headline)
                         .foregroundColor(.primary)
                     
-                    Text(competition.description)
+                    Text(tournament.description)
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }
@@ -97,7 +97,7 @@ struct CompetitionCard: View {
                 Spacer()
                 
                 VStack(alignment: .trailing, spacing: 4) {
-                    Text("$\(String(format: "%.0f", competition.prizePool))")
+                    Text("$\(String(format: "%.0f", tournament.prizePool))")
                         .font(.title2)
                         .fontWeight(.bold)
                         .foregroundColor(.green)
@@ -108,24 +108,46 @@ struct CompetitionCard: View {
                 }
             }
             
-            // Competition Details
+            // Tournament Details
             HStack {
-                CompetitionDetail(icon: "calendar", text: formatDate(competition.startDate))
+                TournamentDetail(icon: "calendar", text: formatDate(tournament.startDate))
                 Spacer()
-                CompetitionDetail(icon: "person.2", text: "\(competition.participants.count)/\(competition.maxParticipants)")
+                TournamentDetail(icon: "person.2", text: "\(tournament.participants.count)/\(tournament.maxParticipants)")
                 Spacer()
-                CompetitionDetail(icon: "dollarsign.circle", text: "$\(String(format: "%.0f", competition.entryFee))")
+                TournamentDetail(icon: "dollarsign.circle", text: "$\(String(format: "%.0f", tournament.entryFee))")
             }
             
             // Progress Bar
-            ProgressView(value: Double(competition.participants.count), total: Double(competition.maxParticipants))
+            ProgressView(value: Double(tournament.participants.count), total: Double(tournament.maxParticipants))
                 .progressViewStyle(LinearProgressViewStyle(tint: .green))
+            
+            // Prize Distribution Preview
+            if !tournament.prizeDistribution.isEmpty {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Prize Distribution")
+                        .font(.caption)
+                        .fontWeight(.medium)
+                        .foregroundColor(.secondary)
+                    
+                    HStack(spacing: 8) {
+                        ForEach(tournament.prizeDistribution.prefix(3), id: \.rank) { distribution in
+                            PrizeDistributionBadge(distribution: distribution)
+                        }
+                        
+                        if tournament.prizeDistribution.count > 3 {
+                            Text("+\(tournament.prizeDistribution.count - 3) more")
+                                .font(.caption2)
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                }
+            }
             
             // Action Buttons
             HStack(spacing: 10) {
-                if competition.participants.contains(where: { $0.id == gameManager.currentUser.id }) {
+                if tournament.participants.contains(where: { $0.id == gameManager.currentUser.id }) {
                     Button("View Details") {
-                        // Navigate to competition details
+                        // Navigate to tournament details
                     }
                     .font(.caption)
                     .padding(.horizontal, 16)
@@ -134,8 +156,8 @@ struct CompetitionCard: View {
                     .foregroundColor(.white)
                     .cornerRadius(8)
                 } else {
-                    Button("Join Competition") {
-                        gameManager.joinCompetition(competition)
+                    Button("Join Tournament") {
+                        gameManager.prizeManager.joinTournament(tournament)
                     }
                     .font(.caption)
                     .padding(.horizontal, 16)
@@ -147,7 +169,7 @@ struct CompetitionCard: View {
                 
                 Spacer()
                 
-                Text(competition.gameMode.rawValue)
+                Text(tournament.gameMode.rawValue)
                     .font(.caption)
                     .padding(.horizontal, 12)
                     .padding(.vertical, 6)
@@ -167,7 +189,7 @@ struct CompetitionCard: View {
     }
 }
 
-struct CompetitionDetail: View {
+struct TournamentDetail: View {
     let icon: String
     let text: String
     
@@ -183,9 +205,34 @@ struct CompetitionDetail: View {
     }
 }
 
+struct PrizeDistributionBadge: View {
+    let distribution: PrizeDistribution
+    
+    var body: some View {
+        HStack(spacing: 4) {
+            Text("#\(distribution.rank)")
+                .font(.caption2)
+                .fontWeight(.bold)
+                .foregroundColor(.white)
+            
+            if let prize = distribution.prize {
+                Image(systemName: prize.imageURL)
+                    .font(.caption2)
+                    .foregroundColor(.white)
+            }
+        }
+        .padding(.horizontal, 6)
+        .padding(.vertical, 3)
+        .background(Color.blue)
+        .cornerRadius(6)
+    }
+}
+
 // MARK: - Prize Pool Section
 
 struct PrizePoolSection: View {
+    @ObservedObject var prizeManager: PrizeManager
+    
     var body: some View {
         VStack(alignment: .leading, spacing: 15) {
             Text("Current Prize Pool")
@@ -193,7 +240,7 @@ struct PrizePoolSection: View {
             
             HStack {
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("$1,250")
+                    Text("$\(String(format: "%.0f", getTotalPrizePool()))")
                         .font(.title)
                         .fontWeight(.bold)
                         .foregroundColor(.green)
@@ -206,7 +253,7 @@ struct PrizePoolSection: View {
                 Spacer()
                 
                 VStack(alignment: .trailing, spacing: 8) {
-                    Text("47")
+                    Text("\(getTotalParticipants())")
                         .font(.title2)
                         .fontWeight(.semibold)
                         .foregroundColor(.blue)
@@ -226,6 +273,14 @@ struct PrizePoolSection: View {
             )
             .cornerRadius(15)
         }
+    }
+    
+    private func getTotalPrizePool() -> Double {
+        return prizeManager.activeTournaments.reduce(0) { $0 + $1.prizePool }
+    }
+    
+    private func getTotalParticipants() -> Int {
+        return prizeManager.activeTournaments.reduce(0) { $0 + $1.participants.count }
     }
 }
 

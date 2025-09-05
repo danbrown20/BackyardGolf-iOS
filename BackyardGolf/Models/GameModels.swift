@@ -134,14 +134,6 @@ struct Competition {
     let gameMode: GameSession.GameMode
 }
 
-struct Prize {
-    let id: String
-    let name: String
-    let description: String
-    let value: Double
-    let imageURL: String?
-    let isClaimed: Bool = false
-}
 
 // MARK: - Social Models
 
@@ -288,6 +280,9 @@ class GameManager: ObservableObject {
     // Achievement System
     @Published var achievementManager = AchievementManager()
     
+    // Prize System
+    @Published var prizeManager = PrizeManager()
+    
     enum ConnectionStatus {
         case disconnected
         case scanning
@@ -309,6 +304,9 @@ class GameManager: ObservableObject {
         
         // Initialize achievement manager with current user
         achievementManager.updateUserProfile(currentUser)
+        
+        // Initialize prize manager with current user
+        prizeManager.updateUserProfile(currentUser)
     }
     
     private func setupMockData() {
@@ -427,6 +425,9 @@ class GameManager: ObservableObject {
                 accuracy: accuracy * 100,
                 gameMode: session.gameMode
             )
+            
+            // Update prize manager
+            prizeManager.updateUserProfile(currentUser)
         }
         
         currentSession?.isActive = false
@@ -490,6 +491,9 @@ class GameManager: ObservableObject {
             distance: distance,
             gameMode: currentSession?.gameMode
         )
+        
+        // Update prize manager
+        prizeManager.updateUserProfile(currentUser)
     }
     
     // MARK: - Social Features
