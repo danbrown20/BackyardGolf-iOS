@@ -12,6 +12,7 @@ struct ProfileView: View {
     @State private var showingEditProfile = false
     @State private var showingAchievements = false
     @State private var showingPrizes = false
+    @State private var showingARTrophies = false
     
     var body: some View {
         NavigationView {
@@ -32,7 +33,8 @@ struct ProfileView: View {
                     // Prizes Preview
                     PrizesPreviewView(
                         prizeManager: gameManager.prizeManager,
-                        showingPrizes: $showingPrizes
+                        showingPrizes: $showingPrizes,
+                        showingARTrophies: $showingARTrophies
                     )
                     
                     // Friends Section
@@ -57,9 +59,12 @@ struct ProfileView: View {
             .sheet(isPresented: $showingAchievements) {
                 EnhancedAchievementsView(achievementManager: gameManager.achievementManager)
             }
-            .sheet(isPresented: $showingPrizes) {
-                UserPrizesView(prizeManager: gameManager.prizeManager)
-            }
+                                    .sheet(isPresented: $showingPrizes) {
+                            UserPrizesView(prizeManager: gameManager.prizeManager)
+                        }
+                        .sheet(isPresented: $showingARTrophies) {
+                            ARTrophyView(prizeManager: gameManager.prizeManager)
+                        }
         }
     }
 }
@@ -576,6 +581,7 @@ struct AchievementDetailView: View {
 struct PrizesPreviewView: View {
     @ObservedObject var prizeManager: PrizeManager
     @Binding var showingPrizes: Bool
+    @Binding var showingARTrophies: Bool
     
     var body: some View {
         VStack(alignment: .leading, spacing: 15) {
@@ -589,6 +595,22 @@ struct PrizesPreviewView: View {
                 Text("\(prizeManager.getUnclaimedPrizeCount()) unclaimed")
                     .font(.caption)
                     .foregroundColor(.secondary)
+                
+                // AR Trophy button
+                Button(action: {
+                    showingARTrophies = true
+                }) {
+                    HStack(spacing: 4) {
+                        Image(systemName: "arkit")
+                        Text("AR")
+                    }
+                    .font(.caption)
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(Color.purple)
+                    .cornerRadius(8)
+                }
                 
                 Button("View All") {
                     showingPrizes = true

@@ -13,6 +13,7 @@ struct PrizeGalleryView: View {
     @State private var selectedTier: Prize.PrizeTier? = nil
     @State private var showingPrizeDetail = false
     @State private var selectedPrize: Prize?
+    @State private var showingARTrophies = false
     
     var body: some View {
         NavigationView {
@@ -41,10 +42,30 @@ struct PrizeGalleryView: View {
             }
             .navigationTitle("Prize Gallery")
             .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button(action: {
+                        showingARTrophies = true
+                    }) {
+                        HStack(spacing: 4) {
+                            Image(systemName: "arkit")
+                            Text("AR")
+                        }
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(Color.purple)
+                        .cornerRadius(8)
+                    }
+                }
+            }
             .sheet(isPresented: $showingPrizeDetail) {
                 if let prize = selectedPrize {
                     PrizeDetailView(prize: prize, prizeManager: prizeManager)
                 }
+            }
+            .sheet(isPresented: $showingARTrophies) {
+                ARTrophyView(prizeManager: prizeManager)
             }
         }
     }
