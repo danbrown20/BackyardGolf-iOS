@@ -149,11 +149,9 @@ extension VideoRecorder: AVCaptureFileOutputRecordingDelegate {
     }
 }
 
-// MARK: - Social Media Manager
-class SocialMediaManager: ObservableObject {
-    @Published var isSharing = false
-    @Published var shareError: String?
-    
+// MARK: - Social Media Helper Functions
+
+extension SocialMediaManager {
     func shareVideo(url: URL, message: String, from viewController: UIViewController?) {
         print("📤 Sharing video with message: \(message)")
         

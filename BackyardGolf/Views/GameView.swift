@@ -54,7 +54,7 @@ struct GameView: View {
                 .tag(4)
             
             // Social Tab
-            SocialView()
+            SocialMediaTabView(socialManager: gameManager.socialManager)
                 .tabItem {
                     Image(systemName: "person.2")
                     Text("Social")
